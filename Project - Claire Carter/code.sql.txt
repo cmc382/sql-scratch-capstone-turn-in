@@ -1,0 +1,123 @@
+Claire Carter - Learn SQL from Scratch (Jun 5 - Jul 31, 2018)
+ 
+QUESTION 1. How many campaigns and sources does CoolTShirts use? Which source is used for each campaign?
+
+-- Count unique campaigns
+SELECT COUNT (DISTINCT utm_campaign) AS 'Campaigns'
+FROM page_visits;
+
+-- Count unique sources
+SELECT COUNT (DISTINCT utm_source) AS 'Sources'
+FROM page_visits;
+
+-- Show relationships
+SELECT utm_campaign AS 'Campaign', 
+	utm_source AS 'Source',
+              COUNT (*) AS 'Count'
+              FROM page_visits
+GROUP BY Campaign
+ORDER BY Source;
+
+QUESTION 2. What pages are on the CoolTShirts website?
+
+-- Find all unique pages
+SELECT DISTINCT page_name AS 'Page Names'
+FROM page_visits;
+
+Part 2. What is the user journey?
+
+QUESTION 3. How many first touches is each campaign responsible for?
+
+-- Find first touches for all Campaigns
+WITH first_touch AS (
+    SELECT user_id,
+        MIN(timestamp) AS first_touch_at
+    FROM page_visits
+    GROUP BY user_id),
+ft_attr AS (
+  SELECT ft.user_id,
+         ft.first_touch_at,
+         pv.utm_source,
+         pv.utm_campaign
+  FROM first_touch ft
+  JOIN page_visits pv
+    ON ft.user_id = pv.user_id
+    AND ft.first_touch_at = pv.timestamp
+)
+SELECT ft_attr.utm_source AS 'Source',
+       ft_attr.utm_campaign AS 'Campaign',
+       COUNT(*) AS 'Total'
+FROM ft_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+
+QUESTION 4. How many last touches is each campaign responsible for?
+
+-- Find last touches for all Campaigns
+WITH last_touch AS (
+    SELECT user_id,
+        MAX(timestamp) AS last_touch_at
+    FROM page_visits
+    GROUP BY user_id),
+lt_attr AS (
+  SELECT lt.user_id,
+         lt.last_touch_at,
+         pv.utm_source,
+         pv.utm_campaign,
+         pv.page_name
+  FROM last_touch lt
+  JOIN page_visits pv
+    ON lt.user_id = pv.user_id
+    AND lt.last_touch_at = pv.timestamp
+)
+SELECT lt_attr.utm_source AS 'Source',
+       lt_attr.utm_campaign AS 'Campaign',
+       COUNT(*) AS 'Total'
+FROM lt_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+QUESTION 5. How many visitors make a purchase?
+
+-- Count visitors who purchase
+SELECT COUNT (DISTINCT user_id) AS 'Customers'
+FROM page_visits	
+WHERE page_name = '4 - purchase';
+
+QUESTION 6. How many last touches on the purchase page is each campaign responsible for?
+
+--  Find last touches for all Campaigns where a purchase is made
+WITH last_touch AS (
+    SELECT user_id,
+        MAX(timestamp) AS last_touch_at
+    FROM page_visits
+  	WHERE page_name = '4 - purchase'
+    GROUP BY user_id),
+lt_attr AS (    
+SELECT lt.user_id AS 'User ID',
+    lt.last_touch_at AS 'Last touched',
+    pv.utm_source AS 'Source',
+    pv.utm_campaign AS 'Campaign',
+    pv.page_name
+FROM last_touch lt
+JOIN page_visits pv
+    ON lt.user_id = pv.user_id
+    AND lt.last_touch_at = pv.timestamp
+)
+SELECT lt_attr.utm_source, AS ‘Source’,
+       lt_attr.utm_campaign, AS ‘Campaign’,
+       COUNT(*) AS ‘Total’
+FROM lt_attr
+GROUP BY 1, 2
+ORDER BY 3 DESC;
+
+--Find Unique visitors by campaign source
+SELECT utm_source AS "Source",
+	utm_campaign AS 'Campaign',
+	COUNT (DISTINCT user_id) AS "Unique visitors"
+FROM page_visits 
+GROUP BY utm_source
+ORDER BY 3 DESC;
+
+
